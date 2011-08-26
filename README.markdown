@@ -5,6 +5,9 @@ Sean Reifschneider <jafo@tummy.com>
 Tuesday October 26, 2004  
 drbdlinks is under the following license: GPLv2
 
+Overview
+--------
+
 drbdlinks is a program which manages links into a DRBD partition which is
 shared among several machines.  A simple configuration file,
 "/etc/drbdlinks.conf", specifies the links.  This can be used to manage
