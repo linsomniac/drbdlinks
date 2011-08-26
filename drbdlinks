@@ -1,0 +1,425 @@
+#!/usr/bin/env python
+#
+#  Manage a set of links into a DRBD shared directory
+#
+#  Written by: Sean Reifschneider <jafo@tummy.com>
+#  Copyright (c) 2004, tummy.com, ltd.  All Rights Reserved
+#  drbdlinks is under the following license: GPLv2
+
+configFile = '/etc/drbdlinks.conf'
+cleanConfigsDirectory = '/var/run/drbdlinks/configs-to-clean'
+
+import os, string, re, sys, stat, syslog, shutil
+syslog.openlog('drbdlinks', syslog.LOG_PID)
+
+#  import optik parser
+try:
+	import optparse
+except ImportError:
+	import optik
+	optparse = optik
+
+##########
+class lsb:  #{{{1
+	class statusRC:
+		OK =		0
+		VAR_PID =	1
+		VAR_LOCK =	2
+		STOPPED =	3
+		UNKNOWN =	4
+		LSBRESERVED =	5
+		DISTRESERVED =	100
+		APPRESERVED =	150
+		RESERVED =	200
+	class exitRC:
+		OK             	= 0
+		GENERIC        	= 1
+		EINVAL         	= 2
+		ENOTSUPPORTED  	= 3
+		EPERM          	= 4
+		NOTINSTALLED   	= 5
+		NOTCONFIGED    	= 6
+		NOTRUNNING     	= 7
+		LSBRESERVED    	= 8
+		DISTRESERVED   	= 100
+		APPRESERVED    	= 150
+		RESERVED       	= 200
+
+
+###########
+def log(s):  #{{{1
+	sys.stderr.write(s)
+	syslog.syslog(s)
+
+
+##############################################
+def multiInitRestart(flavor, initscript_list):  #{{{1
+	for initscript in initscript_list:
+		if os.path.exists(initscript):
+			retcode = os.system('%s restart' % initscript)
+			if retcode != 0:
+				log('%s restart returned %d, expected 0' % ( flavor, retcode ))
+			return(retcode != 0)
+
+	syslog.syslog('Unable to locate %s init script, not '
+			'restarting.' % flavor)
+	return(0)
+
+
+##########################
+def restartSyslog(config):  #{{{1
+	if not config.restartSyslog: return(0)
+
+	return multiInitRestart('syslog', [
+			'/etc/init.d/syslog', '/etc/init.d/rsyslog' ])
+
+
+########################
+def restartCron(config):  #{{{1
+	if not config.restartCron: return(0)
+
+	return multiInitRestart('cron', [ '/etc/init.d/crond', '/etc/init.d/cron', ])
+
+
+#######################
+def testConfig(config):  #{{{1
+	allUp = 1
+	for linkLocal, linkDest, useBindLink in config.linkList:
+		suffixName = linkLocal + options.suffix
+		#  check to see if the link is in place  {{{3
+		if not os.path.exists(suffixName):
+			allUp = 0
+			if options.verbose >= 1:
+				print 'testConfig: Original file not present: "%s"' % suffixName
+			continue
+
+	if options.verbose >= 1:
+		print 'testConfig: Returning %s' % allUp
+	return(allUp)
+
+
+###############################
+def loadConfigFile(configFile):  #{{{1
+	class configClass:  #{{{2
+		def __init__(self):  #{{{3
+			self.mountpoint = None
+			self.cleanthisconfig = 0
+			self.linkList = []
+			self.useSELinux = 0
+			self.selinuxenabledPath = None
+			self.useBindMount = 0
+			self.debug = 0
+			self.restartSyslog = 0
+			self.restartCron = 0
+			self.makeMountpointShared = 0
+
+			#  Locate where the selinuxenabled binary is
+			for path in (
+					'/usr/sbin/selinuxenabled',
+					'/sbin/selinuxenabled', ):
+				if os.path.exists(path):
+					self.selinuxenabledPath = path
+					break
+
+			#  auto-detect if SELinux is on
+			if self.selinuxenabledPath:
+				ret = os.system(self.selinuxenabledPath)
+				if ret == 0:
+					self.useSELinux = 1
+
+		def cmd_cleanthisconfig(self, enabled = 1):  #{{{3
+			self.cleanthisconfig = enabled
+
+		def cmd_mountpoint(self, arg, shared = 0):  #{{{3
+			self.mountpoint = arg
+			if shared:
+				self.makeMountpointShared = 1
+
+		def cmd_link(self, src, dest = None):  #{{{3
+			self.linkList.append(( src, dest, self.useBindMount ))
+
+		def cmd_selinux(self, enabled = 1):  #{{{3
+			self.useSELinux = enabled
+
+		def cmd_usebindmount(self, enabled = 1):  #{{{3
+			self.useBindMount = enabled
+
+		def cmd_debug(self, level = 1):  #{{{3
+			self.debug = level
+
+		def cmd_restartSyslog(self, enabled = 1):  #{{{3
+			self.restartSyslog = enabled
+
+		def cmd_restartCron(self, enabled = 1):  #{{{3
+			self.restartCron = enabled
+
+	#  set up config environment  #{{{2
+	config = configClass()
+	namespace = {
+			'mountpoint' : config.cmd_mountpoint,
+			'link' : config.cmd_link,
+			'selinux' : config.cmd_selinux,
+			'debug' : config.cmd_debug,
+			'usebindmount' : config.cmd_usebindmount,
+			'restartSyslog' : config.cmd_restartSyslog,
+			'restartsyslog' : config.cmd_restartSyslog,
+			'restartCron' : config.cmd_restartCron,
+			'restartcron' : config.cmd_restartCron,
+			'cleanthisconfig' : config.cmd_cleanthisconfig,
+			}
+
+	#  load the file  #{{{2
+	try:
+		execfile(configFile, {}, namespace)
+	except Exception, e:
+		print 'ERROR: Loading configuration file failed.  See below for details:'
+		raise
+	
+	#  process the data we got
+	if config.mountpoint:
+		config.mountpoint = string.rstrip(config.mountpoint, '/')
+	for i in xrange(len(config.linkList)):
+		oldList = config.linkList[i]
+		if oldList[1]:
+			arg2 = string.rstrip(oldList[1], '/')
+		else:
+			if not config.mountpoint:
+				log('ERROR: Used link() when no mountpoint() was set '
+						'in the config file.\n')
+				sys.exit(3)
+			arg2 = string.lstrip(oldList[0], '/')
+			arg2 = os.path.join(config.mountpoint, arg2)
+		config.linkList[i] = ([string.rstrip(oldList[0], '/'), arg2]
+				+ list(oldList[2:]))
+
+	#  return the data  {{{2
+	return(config)
+
+
+#  parse arguments  {{{1
+parser = optparse.OptionParser()
+parser.add_option('-c', '--config-file', dest = 'configFile', type = 'string',
+		default = configFile,
+		help = 'Location of the configuration file.')
+parser.add_option('-s', '--suffix', dest = 'suffix', type = 'string',
+		default = '.drbdlinks',
+		help = 'Name to append to the local file-system name when the link '
+				'is in place.')
+parser.add_option('-v', '--verbose', default = 0,
+		dest = 'verbose', action = 'count',
+		help = 'Increase verbosity level by 1 for every "-v".')
+parser.set_usage('%prog (start|stop|auto|status|monitor|list)')
+options, args = parser.parse_args()
+origConfigFile = configFile
+configFile = options.configFile
+
+#  figure out what the mode to run in  {{{1
+if len(args) == 1:
+	if args[0] not in ( 'start', 'stop', 'auto', 'monitor', 'status', 'list' ):
+		parser.error('ERROR: Unknown mode "%s", expecting one of '
+				'(start|stop|auto|status|monitor|list)' % args[0])
+		sys.exit(lsb.exitRC.ENOTSUPPORTED)
+	mode = args[0]
+else:
+	parser.error('Expected exactly one argument to specify the mode.')
+	sys.exit(lsb.exitRC.EINVAL)
+if options.verbose >= 2: print 'Initial mode: "%s"' % mode
+
+#  load config file  {{{1
+try:
+	config = loadConfigFile(configFile)
+except IOError, e:
+	if e.errno == 2:
+		if mode == 'monitor' or mode == 'status':
+			print ('WARNING: Config file "%s" not found, assuming drbdlinks '
+					'is stopped' % configFile)
+			sys.exit(lsb.statusRC.STOPPED)
+		print 'ERROR: Unable to open config file "%s":' % configFile
+		print '  ', str(e)
+		syslog.syslog('Invalid config file "%s"' % configFile)
+		sys.exit(lsb.statusRC.UNKNOWN)
+	raise
+if not config.mountpoint:
+	log('No mountpoint found in config file.  Aborting.\n')
+	if mode == 'monitor':
+		if config.debug: syslog.syslog('Monitor called without mount point')
+		sys.exit(lsb.exitRC.EINVAL)
+	if config.debug: syslog.syslog('No mount point')
+	sys.exit(lsb.statusRC.UNKNOWN)
+if not os.path.exists(config.mountpoint):
+	log('Mountpoint "%s" does not exist.  Aborting.\n' % config.mountpoint)
+	if mode == 'monitor':
+		if config.debug: syslog.syslog('Mount point does not exist, monitor mode')
+		sys.exit(lsb.exitRC.EINVAL)
+	if config.debug: syslog.syslog('Mount point does not exist')
+	sys.exit(lsb.statusRC.UNKNOWN)
+
+#  startup log message  {{{1
+if config.debug:
+	syslog.syslog('drbdlinks starting: args: "%s", configfile: "%s"'
+			% ( repr(sys.argv), configFile ))
+
+#  if mode is auto, figure out what mode to use  {{{1
+if mode == 'auto':
+	if (os.stat(config.mountpoint).st_dev !=
+			os.stat(os.path.join(config.mountpoint, '..')).st_dev):
+		if options.verbose >= 1:
+			print 'Detected mounted file-system on "%s"' % config.mountpoint
+		mode = 'start'
+	else:
+		mode = 'stop'
+if options.verbose >= 1: print 'Mode: "%s"' % mode
+
+# just display the list of links  {{{1
+if mode == 'list':
+	for linkLocal, linkDest, useBindMount in config.linkList:
+		print linkLocal, linkDest, useBindMount
+	sys.exit(0)
+
+#  set up links  {{{1
+anyLinksChanged = 0
+if mode == 'start':
+	errorCount = 0
+
+	#  set up shared mountpoint
+	if config.makeMountpointShared:  #{{{2
+		os.system('mount --make-shared  "%s"' % config.mountpoint)
+
+	#  loop over links
+	for linkLocal, linkDest, useBindMount in config.linkList:  #{{{2
+		suffixName = linkLocal + options.suffix
+		#  check to see if the link is in place  {{{3
+		if os.path.exists(suffixName):
+			if options.verbose >= 1:
+				print 'Skipping, appears to already be linked: "%s"' % linkLocal
+			continue
+
+		#  make the link  {{{3
+		try:
+			if options.verbose >= 2:
+				print 'Renaming "%s" to "%s"' % ( linkLocal, suffixName )
+			os.rename(linkLocal, suffixName)
+			anyLinksChanged = 1
+		except ( OSError, IOError ), e:
+			log('Error renaming "%s" to "%s": %s\n'
+					% ( suffixName, linkLocal, str(e) ))
+			errorCount = errorCount + 1
+			if options.verbose >= 2:
+				print 'Linking "%s" to "%s"' % ( linkDest, linkLocal )
+			anyLinksChanged = 1
+
+		if useBindMount:
+			st = os.stat(linkDest)
+			if stat.S_ISREG(st.st_mode): open(linkLocal, 'w').close()
+			else: os.mkdir(linkLocal)
+			os.system('mount -o bind "%s" "%s"' % ( linkDest, linkLocal ))
+		else:
+			try:
+				os.symlink(linkDest, linkLocal)
+			except ( OSError, IOError ), e:
+				log('Error linking "%s" to "%s": %s'
+						% ( linkDest, linkLocal, str(e) ))
+				errorCount = errorCount + 1
+
+		#  set up in SELinux
+		if config.useSELinux:
+			fp = os.popen('ls -d --scontext "%s"' % suffixName, 'r')
+			line = fp.readline()
+			fp.close()
+			if line:
+				line = string.split(line, ' ')[0]
+				seInfo = string.split(line, ':')
+				seUser, seRole, seType = seInfo[:3]
+				if len(seInfo) >= 4:
+					seRange = seInfo[3]
+					os.system('chcon -h -u "%s" -r "%s" -t "%s" -l "%s" "%s"'
+							% ( seUser, seRole, seType, seRange, linkLocal ))
+				else:
+					os.system('chcon -h -u "%s" -r "%s" -t "%s" "%s"'
+							% ( seUser, seRole, seType, linkLocal ))
+	
+	if anyLinksChanged:
+		if restartSyslog(config): errorCount = errorCount + 1
+		if restartCron(config): errorCount = errorCount + 1
+
+	if config.cleanthisconfig and origConfigFile != configFile:
+		if not os.path.exists(cleanConfigsDirectory):
+			if config.debug:
+				syslog.syslog('Config copy directory "%s" does not exist.'
+						% cleanConfigsDirectory)
+		else:
+			if config.debug: syslog.syslog('Preserving a copy of the config file.')
+			shutil.copy(configFile, cleanConfigsDirectory)
+
+	if errorCount:
+		if config.debug: syslog.syslog('Exiting due to %d errors' % errorCount)
+		sys.exit(lsb.exitRC.GENERIC)
+	if config.debug: syslog.syslog('Exiting with no errors')
+	sys.exit(lsb.exitRC.OK)
+
+#  remove links  {{{1
+elif mode == 'stop':
+	errorCount = 0
+	for linkLocal, linkDest, useBindMount in config.linkList:
+		suffixName = linkLocal + options.suffix
+		#  check to see if the link is in place  {{{3
+		if not os.path.exists(suffixName):
+			if options.verbose >= 1:
+				print 'Skipping, appears to already be shut down: "%s"' % linkLocal
+			continue
+
+		#  break the link  {{{3
+		try:
+			if options.verbose >= 2:
+				print 'Removing "%s"' % ( linkLocal, )
+			anyLinksChanged = 1
+
+			if useBindMount:
+				os.system('umount "%s"' % linkLocal)
+				try: os.remove(linkLocal)
+				except: pass
+				if os.path.exists(linkLocal): os.rmdir(linkLocal)
+			else:
+				os.remove(linkLocal)
+		except ( OSError, IOError ), e:
+			log('Error removing "%s": %s\n' % ( linkLocal, str(e) ))
+			errorCount = errorCount + 1
+		try:
+			if options.verbose >= 2:
+				print 'Renaming "%s" to "%s"' % ( suffixName, linkLocal )
+			os.rename(suffixName, linkLocal)
+			anyLinksChanged = 1
+		except ( OSError, IOError ), e:
+			log('Error renaming "%s" to "%s": %s\n'
+					% ( suffixName, linkLocal, str(e) ))
+			errorCount = errorCount + 1
+
+	if anyLinksChanged:
+		restartSyslog(config)
+		restartCron(config)
+
+	if errorCount:
+		if config.debug: syslog.syslog('Exiting due to %d errors' % errorCount)
+		sys.exit(lsb.exitRC.GENERIC)
+	if config.debug: syslog.syslog('Exiting with no errors')
+	sys.exit(lsb.exitRC.OK)
+
+#  monitor mode  {{{1
+elif mode == 'monitor':
+	if testConfig(config):
+		if config.debug: syslog.syslog('Monitor mode returning ok')
+		sys.exit(lsb.exitRC.OK)
+
+	if config.debug: syslog.syslog('Monitor mode returning notrunning')
+	sys.exit(lsb.exitRC.NOTRUNNING)
+
+#  status mode  {{{1
+elif mode == 'status':
+	if testConfig(config):
+		print "info: DRBD Links OK (present)"
+		if config.debug: syslog.syslog('Status mode returning ok')
+		sys.exit(lsb.statusRC.OK)
+
+	print "info: DRBD Links stopped (not set up)"
+	if config.debug: syslog.syslog('Status mode returning stopped')
+	sys.exit(lsb.statusRC.STOPPED)

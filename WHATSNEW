@@ -1,0 +1,110 @@
+================================
+Version 1.20 -- Wed Aug 10, 2011
+
+Fix SELinux-related traceback on CentOS/RHEL version 6.
+      (Patches provided by James Johnson and Robert Scheck)
+
+================================
+Version 1.19 -- Thu May 05, 2011
+
+Changing cron restarting to look for init script existance instead of
+      pid-file.
+
+================================
+Version 1.18 -- Fri May 22, 2009
+
+Fixing a bug in the location of the cron pid file on Fedora/CentOS.
+      (Patch provided by Robert Scheck)
+
+================================
+Version 1.17 -- Mon May 18, 2009
+
+Fixing in a bug introduced in 1.12 that prevented drbdlinksclean from
+      working.
+
+================================
+Version 1.16 -- Sat May 16, 2009
+
+Making the license more clear.
+
+================================
+Version 1.15 -- Sun Apr 19, 2009
+
+Fixing a bug in drbdlinksclean init script which would cause clean to fail
+      if there was no "/etc/drbd.conf".  Switched to check drbdlinks.conf
+      instead.  Fix by Stefan Seifert.
+
+================================
+Version 1.14 -- Fri Jan 23, 2009
+
+Option to restart crond after links have changed.
+Adding patch from Heiko Schlittermann to add a "list" argument which dumps
+      a list of the drbdlinks information for use with scripts that need
+      this information from the configuration file.
+
+================================
+Version 1.12 -- Thu Sep 04, 2008
+
+Added OPTIONS and EXAMPLES sections in the man page (Mike Loseke)
+Log debugging information via syslog.
+Added "cleanthisconfig" config command.  This is meant to be used in a
+      system with multiple drbd mountpoints, started at different times.
+      Each one would typically have it's own config file, which may not be
+      available at system boot.  drbdlinks will now copy these files off to a
+      safe location when it starts, and drbdlinksclean will run any of these
+      it finds in addition to the normal drbdlinks.conf.
+Adding a "/var/run/drbdlinks/configs-to-clean" directory, any config files
+      that are in there will get cleaned by "drbdlinksclean" at system boot.
+Modified monitor option so that it returns "stopped" instead of
+      "not configured" if there is no configuration file.  Required for the
+      multiple configurations.
+
+================================
+Version 1.11 -- Mon Dec 24, 2007
+
+Add option to make mountpoints shared using "mount --make-shared".
+Changing error writes to use syslog as well stdout.
+
+================================
+Version 1.09 -- Sat Aug 11, 2007
+
+Look for init.d/rsyslog as alternative syslog start script to normal
+      syslog.  Suggested by Michael Mansour.
+
+================================
+Version 1.08 -- Tue Feb 27, 2007
+
+Making the init script LSB-compliant.  Suggested by Cyril Bouthors.
+
+================================
+Version 1.07 -- Fri Jul 14, 2006
+
+Fixing a bug on the configuration test mode which resulted in:
+      ValueError: too many values to unpack error.  Reported by Ryan Suarez
+
+================================
+Version 1.06 -- Tue Mar 14, 2006
+
+Fixing a bug related to the AnyLinksChanged code submitted by Alan.
+      Problem detected and fixed by Arne R. van der Heyde.
+
+================================
+Version 1.05 -- Mon Feb 06, 2006
+
+Several patches from Alan Robertson:
+   Adding LSB exit codes.
+   Restart syslog after links have changed.
+   Exit code from start and stop reflects whether there were any errors.
+   "restartsyslog" command in config file.
+   All error messages start with "ERROR:" now.
+   drbdlinksclean init script converted to LSB-compliance.
+Added "usebindmount" to allow using bind mounts instead of symbolic links
+      (Suggested by Alessandro Zummo)
+
+================================
+Version 1.04 -- Tue Jul 19, 2005
+
+Adding a "monitor" and "status" mode to drbdlinks which check to ensure
+      that all links are up.  Suggested by Cyril Bouthors.
+Adding a drbdlinks.8 man page.  Original version submitted by Cyril
+      Bouthors.

@@ -1,0 +1,130 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH DRBDLINKS 8 "September  3, 2008"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+drbdlinks \- manages links into a shared DRBD partition
+.SH SYNOPSIS
+.B drbdlinks
+[\fIOPTION\fR]... [start|stop|auto|status|monitor]
+.SH DESCRIPTION
+
+.B drbdlinks
+is a program which manages links into a DRBD partition which is shared
+among several machines.  It is meant to be used in conjunction with the
+heartbeat system for simplifying management of high availability clusters.
+A simple configuration file, "/etc/drbdlinks.conf", specifies the links.
+This can be used to manage links for "/etc/apache", "/var/lib/pgsql",
+and other system files and directories that need to appear as if they
+are local to the system when running applications after a DRBD shared
+partition has been mounted.
+
+A sample configuration file with annotations is included in the drbdlinks
+distribution.
+
+When run with "start" as the mode, drbdlinks will rename the existing
+files/directories, and then make symbolic links into the DRBD
+partition.  "stop" does the reverse.
+
+The "monitor" and "status" modes will check the file-system against the
+configuration file and will report "running" (monitor mode) or "OK" (status
+mode) if all links appear to be up.  Otherwise they report "down" or
+"stopped" (respectively).
+
+By default, the rename appends .drbdlinks to the name, but this can be
+overridden in the configuration file.
+
+The "list" mode just show the list of links, with each line showing the
+link, destination, and a 0/1 flag for bindMount status.  This may be useful
+for user scripts without having to parse the configuration.
+
+An init script is included which runs "stop" before heartbeat starts,
+and after heartbeat stops.  This is done to try to ensure that when
+the shared partition isn't mounted, the links are in their normal
+state.
+
+.SH OPTIONS
+.PP
+.B drbdlinks
+has several options, using either short or long variants.
+.PP
+.IP "\fB-h, --help\fP"
+Print a short help message describing the available options and exit.
+
+.IP "\fB-c, --config-file=CONFIGFILE\fP"
+Specify an alternate config file.  The default config file is
+/etc/drbdlinks.conf.  Alternate config files should have a "drbdlinks-"
+prefix, e.g. "drbdlinks-httpd.conf".
+
+.IP "\fB-s, --suffix=SUFFIX\fP"
+Name to append to the local file-system name when the link is in place.  The
+default is "drbdlinks", which would result in a renamed file like
+"/etc/httpd.drbdlinks".
+
+.IP "\fB-v, --verbose\fP"
+Increase verbosity level by 1 for every occurrence of this option.
+
+.SH EXAMPLES
+.PP
+Here are a few examples of how drbdlinks can be used.
+
+The most straight-forward, and default, method for starting drbdlinks:
+.PP
+.RS
+drbdlinks start
+.RE
+
+To use a suffix different from the default when linking to a file or
+directory, the -s option can be used, specifying the desired string:
+.PP
+.RS
+drbdlinks -s orig start
+.RE
+
+would rename the file-system name to "name.orig".
+
+Increase the verbosity to assist in debugging:
+.PP
+.RS
+drbdlinks -v -v start
+.RE
+
+Use an alternate configuration file, possibly from with a DRBD mounted
+file-system:
+.PP
+.RS
+drbdlinks -c /shared1/drbdlinks-httpd.conf start
+.RE
+
+This would use the specified configuration file, found on our DRBD device
+mounted on /shared1.  This would allow us to easily keep drbdlinks
+configurations tied to a specific set of data on a DRBD disk in an
+active/active sort of HA configuration.
+
+
+.SH SEE ALSO
+.BR DRBD (8),
+.BR drbdadm (8),
+.BR drbdsetup (8),
+.BR heartbeat (8).
+.SH AUTHOR
+drbdlinks was written by Sean Reifschneider <jafo@tummy.com>.
+.PP
+This manual page was written by Cyril Bouthors <cyril@bouthors.org>,
+for the Debian project (but may be used by others).  Sean Reifschneider
+modified it for status and monitor arguments, and included it in the base
+drbdlinks release.  Mike Loseke <mike@tummy.com> added the sections on
+options and examples.

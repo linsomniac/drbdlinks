@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+#  Run when the .tar file is created, updates the .spec file.
+
+echo "Updating .spec file"
+dir=`pwd`
+rev=${dir##*-}
+for spec in *.spec
+do
+	cp "${spec}" "${spec}.old"
+	sed 's/^%define version.*/%define version '"$rev"'/' "${spec}.old" >"${spec}"
+	rm -f "${spec}.old"
+done
+
+#  send a release notification
+if [ -f ~/.notify-drbdlinks ]; then
+	echo 'Sending release notification to:'
+	cat ~/.notify-drbdlinks
+	echo "New version of drbdlinks: ftp://ftp.tummy.com/pub/tummy/drbdlinks/" | mutt -s "New version notification: ${dir##*/}" `cat ~/.notify-drbdlinks`
+	rm -f release-notify
+fi

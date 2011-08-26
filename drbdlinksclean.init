@@ -1,0 +1,95 @@
+#!/bin/sh
+#
+#  drbdlinks: Cleans links made by drbdlinks.
+#
+#  chkconfig: 2345 74 06
+#  description: Calls drbdlinks on initial system boot and shutdown to make
+#               sure that any links set up by drbdlinks are cleaned up when
+#               drbd is not running.
+#
+### BEGIN INIT INFO
+# Provides: drbdlinks
+# Required-Start: $local_fs $remote_fs
+# Required-Stop: $local_fs $remote_fs
+# Should-Start:
+# Should-Stop:
+# Default-Start: 2345
+# Default-Stop: 0 1 6
+# Short-Description: Clean up drbdlinks links on system boot or shutdown.
+# Description:  Calls drbdlinks on initial system boot and shutdown to make
+#               sure that any links set up by drbdlinks are cleaned up when
+#               drbd is not running.
+### END INIT INFO
+
+# Source function library.
+. /lib/lsb/init-functions
+
+FOUNDFILE=0
+[ -f /etc/drbdlinks.conf ] && FOUNDFILE=1
+for FILE in /var/run/drbdlinks/configs-to-clean/*
+do
+	[ ! -f "$FILE" ] && continue
+	FOUNDFILE=1
+	break
+done
+if [ "$FOUNDFILE" != 1 ]
+then
+   echo "No /etc/drbdlinks.conf file.  Aborting."
+   exit 1
+fi
+
+case "$1" in
+	start)
+		"$0" stop
+		exit "$?"
+		;;
+
+	stop)
+		echo -n 'Cleaning up drbdlinks.conf links...'
+
+		#  main drbdlinks.conf file
+		RET=0
+		if [ -f /etc/drbdlinks.conf ]
+		then
+			if grep -q '^mountpoint(' /etc/drbdlinks.conf
+			then
+				/usr/sbin/drbdlinks stop
+				RET=$?
+			else
+				echo "No mountpoint found in /etc/drbdlinks.conf, skipping." | \
+						logger -t drbdlinksclean
+				echo "No mountpoint found in /etc/drbdlinks.conf, skipping."
+			fi
+		fi
+
+		#  clean up any supplemental config files
+		for FILE in /var/run/drbdlinks/configs-to-clean/*
+		do
+			[ ! -f "$FILE" ] && continue
+			echo -n "Cleaning up '${FILE##*/}' links..."
+			/usr/sbin/drbdlinks --config-file "$FILE" stop || RET=$?
+		done
+
+		if [ "$RET" -eq 0 ]
+		then
+			log_success_msg OK
+		else
+			log_failure_msg stop-failure
+			exit 1
+		fi
+		;;
+
+	restart|force-reload)
+		"$0" start
+		;;
+
+	status)
+		exec /usr/sbin/drbdlinks status
+		;;
+
+	*)
+		echo "usage: $0 {start|stop}"
+		;;
+esac
+
+exit 0
