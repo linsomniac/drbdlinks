@@ -1,9 +1,9 @@
 DRBDLINKS README
 ================
 
->Sean Reifschneider <jafo@tummy.com>
->Tuesday October 26, 2004
->drbdlinks is under the following license: GPLv2
+Sean Reifschneider <jafo@tummy.com>  
+Tuesday October 26, 2004  
+drbdlinks is under the following license: GPLv2
 
 drbdlinks is a program which manages links into a DRBD partition which is
 shared among several machines.  A simple configuration file,
