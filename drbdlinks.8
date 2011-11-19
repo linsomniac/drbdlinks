@@ -19,7 +19,7 @@
 drbdlinks \- manages links into a shared DRBD partition
 .SH SYNOPSIS
 .B drbdlinks
-[\fIOPTION\fR]... [start|stop|auto|status|monitor]
+[\fIOPTION\fR]... [start|stop|auto|status|monitor|checklinks]
 .SH DESCRIPTION
 
 .B drbdlinks
@@ -38,6 +38,11 @@ distribution.
 When run with "start" as the mode, drbdlinks will rename the existing
 files/directories, and then make symbolic links into the DRBD
 partition.  "stop" does the reverse.
+
+Mode "checklinks" will report any links that do not exist in the
+destination area.  During initial setup and configuration, this can help
+check that you have the destination file-system set up with the required
+components.
 
 The "monitor" and "status" modes will check the file-system against the
 configuration file and will report "running" (monitor mode) or "OK" (status

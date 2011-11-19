@@ -1,15 +1,31 @@
 DRBDLINKS README
 Sean Reifschneider <jafo@tummy.com>
-Tuesday October 26, 2004
+Saturday November 19, 2011
 drbdlinks is under the following license: GPLv2
 ===================================
 
-drbdlinks is a program which manages links into a DRBD partition which is
-shared among several machines.  A simple configuration file,
-"/etc/drbdlinks.conf", specifies the links.  This can be used to manage
-links for /etc/httpd, /var/lib/pgsql, and other system directories that
-need to appear as if they are local to the system when running applications
-after a drbd shared partition has been mounted.
+drbdlinks is a program that will manage creation and removal of symbolic
+links.  It is primarily used with clusters of machines using either shared
+storage or the "DRBD" replicated block device.
+
+While the name of the program is "drbdlinks", it can be used in any
+shared-storage sort of environment where the shared storage is only mounted
+on the active node.  In cases like NFS where the shared storage is always
+mounted on all nodes, drbdlinks is not necessary.
+
+The advantage over creating static symbolic links is that package updates
+often require that directories point at real files, so updates can often
+fail if you do not have the shared storage mounted.
+
+drbdlinks also supports multiple instances of links, in the case of
+active/active clusters.  For example, if you have MySQL running in one
+resource group, and Apache running in another, you can use the "-c"
+switch to specify a configuration file for each resource group.
+
+A simple configuration file, "/etc/drbdlinks.conf", specifies the links.
+This can be used to manage links for /etc/httpd, /var/lib/pgsql, and other
+system directories that need to appear as if they are local to the system
+when running applications after a drbd shared partition has been mounted.
 
 When run with "start" as the mode, drbdlinks will rename the existing
 files/directories, and then make symbolic links into the DRBD partition.
@@ -19,3 +35,62 @@ the name, but this can be overridden.
 An init script is included which runs "stop" before heartbeat starts, and
 after heartbeat stops.  This is done to try to ensure that when the shared
 partition isn't mounted, the links are in their normal state.
+
+GETTING STARTED
+---------------
+
+The first thing you need to do is create a "/etc/drbdlinks.conf" file.  The
+package ships with an example, primarily you will need to uncomment and
+modify the "mountpoint" and "link" directives.  The "mountpoint" directive
+tells drbdlinks the root of where your shared storage for this resource
+group is mounted.
+
+Next, you will need to set up the shared storage.  Create the
+directories specified by the "link" directives in the configuration file
+and copy the appropriate files into them.
+
+Now run "drbdlinks checklinks".  This will test the configuration file and
+make sure all the specified links exist in the shared storage.
+
+Now you just need to list "drbdlinks" in your resources, it needs to be
+after the shared storage is mounted, but before any references to it are
+used.  I usually bring it up immediately after the resource that mounts the
+shared storage.
+
+ABOUT APACHE
+------------
+
+The easy route is to just set up all of "/etc/apache2" or "/etc/httpd" as
+the directory that is linked.  However, this contains many sub-directories
+or links that may best be left on the root file-system, so that updates
+don't get the shared storage and the root file-system out of sync.
+
+In particular, the links to Apache modules may become out of sync.
+
+However, it also requires some discipline to ensure that all of the
+configuration changes you make are not in system directories or files.  For
+example, ideally you would customize the configuration only in the
+"conf.d", "sites-available", "sites-enabled", and "mods-enabled"
+directories.
+
+I haven't yet tested these, but I'd propose you'd need to use the
+following.
+
+For RHEL/CentOS/Fedora:
+
+   link('/etc/httpd/conf.d')
+   link('/etc/httpd/conf/httpd.conf')
+   link('/var/log/httpd')
+
+For Debian/Ubuntu:
+
+   link('/etc/apache2/mods-enabled')
+   link('/etc/apache2/sites-enabled')
+   link('/etc/apache2/sites-available')
+   link('/etc/apache2/conf.d')
+   link('/etc/apache2/ports.conf')
+   link('/etc/apache2/envvars')
+   link('/etc/apache2/apache2.conf')
+   link('/var/log/apache2')
+
+Please let me know if these values work or do not work for you.

@@ -208,16 +208,19 @@ parser.add_option('-s', '--suffix', dest = 'suffix', type = 'string',
 parser.add_option('-v', '--verbose', default = 0,
 		dest = 'verbose', action = 'count',
 		help = 'Increase verbosity level by 1 for every "-v".')
-parser.set_usage('%prog (start|stop|auto|status|monitor|list)')
+parser.set_usage('%prog (start|stop|auto|status|monitor|list|checklinks|\n'
+		'        initialize_shared_storage)')
 options, args = parser.parse_args()
 origConfigFile = configFile
 configFile = options.configFile
 
 #  figure out what the mode to run in  {{{1
 if len(args) == 1:
-	if args[0] not in ( 'start', 'stop', 'auto', 'monitor', 'status', 'list' ):
+	if args[0] not in ( 'start', 'stop', 'auto', 'monitor', 'status', 'list',
+			'checklinks', 'initialize_shared_storage' ):
 		parser.error('ERROR: Unknown mode "%s", expecting one of '
-				'(start|stop|auto|status|monitor|list)' % args[0])
+				'(start|stop|auto|status|monitor|list|checklinks|\n'
+				'      initialize_shared_storage)' % args[0])
 		sys.exit(lsb.exitRC.ENOTSUPPORTED)
 	mode = args[0]
 else:
@@ -423,3 +426,9 @@ elif mode == 'status':
 	print "info: DRBD Links stopped (not set up)"
 	if config.debug: syslog.syslog('Status mode returning stopped')
 	sys.exit(lsb.statusRC.STOPPED)
+
+#  check mode  {{{1
+elif mode == 'checklinks':
+	for linkLocal, linkDest, useBindMount in config.linkList:
+		if not os.path.exists(linkDest):
+			print 'Doest not exist:', linkDest
