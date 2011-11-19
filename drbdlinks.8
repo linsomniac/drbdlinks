@@ -44,6 +44,11 @@ destination area.  During initial setup and configuration, this can help
 check that you have the destination file-system set up with the required
 components.
 
+If run with "initialize_shared_storage", destination links specified in the
+configuration file will be populated from the source storage.  This is
+useful for initial setup to populate the shared storage.  Preceding paths
+will be populated if they share the same name from source to destination.
+
 The "monitor" and "status" modes will check the file-system against the
 configuration file and will report "running" (monitor mode) or "OK" (status
 mode) if all links appear to be up.  Otherwise they report "down" or

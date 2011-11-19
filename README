@@ -45,9 +45,19 @@ modify the "mountpoint" and "link" directives.  The "mountpoint" directive
 tells drbdlinks the root of where your shared storage for this resource
 group is mounted.
 
-Next, you will need to set up the shared storage.  Create the
-directories specified by the "link" directives in the configuration file
-and copy the appropriate files into them.
+Next, you will need to set up the shared storage.
+
+Automatic population: drbdlinks now includes an "initialize_shared_storage"
+mode that will look at the links in the config file, and if they don't
+exist in the shared storage it will populate them from the root
+file-system.  Parent paths that do not exist will be set to the same
+ownership and mode as the same directory from the source file-system, if
+they share the same name.  So for example, if you have a
+"link('/etc/apache2', '/shared/etc/apache2')", it will create "/shared/etc"
+and "/shared/etc/apache2" with the same permissions/ownership.
+
+Manual population: Create the directories specified by the "link" directives
+in the configuration file and copy the appropriate files into them.
 
 Now run "drbdlinks checklinks".  This will test the configuration file and
 make sure all the specified links exist in the shared storage.

@@ -432,3 +432,40 @@ elif mode == 'checklinks':
 	for linkLocal, linkDest, useBindMount in config.linkList:
 		if not os.path.exists(linkDest):
 			print 'Doest not exist:', linkDest
+	sys.exit(lsb.exitRC.OK)
+
+
+#  initialize_shared_storage mode  {{{1
+elif mode == 'initialize_shared_storage':
+	def dirs_to_make(src, dest):
+		'''Return a list of paths, from top to bottom, that need to be created
+		in the destination.  The return value is a list of tuples of (src, dest)
+		where the `src` is the corresponding source directory to the `dest`.
+		'''
+		l = []
+		destdirname = os.path.dirname(dest)
+		srcdirname = os.path.dirname(src)
+		while srcdirname and srcdirname != '/':
+			if os.path.exists(destdirname):
+				break
+			if os.path.basename(destdirname) != os.path.basename(srcdirname):
+				break
+			l.append(( srcdirname, destdirname ))
+			srcdirname = os.path.dirname(srcdirname)
+			destdirname = os.path.dirname(destdirname)
+		return l[::-1]
+
+	for linkLocal, linkDest, useBindMount in config.linkList:
+		if os.path.exists(linkDest):
+			continue
+
+		for src, dest in dirs_to_make(linkLocal, linkDest):
+			print 'Making directory "%s"' % dest
+			os.mkdir(dest)
+			srcstat = os.stat(src)
+			os.chmod(dest, srcstat.st_mode)
+			os.chown(dest, srcstat.st_uid, srcstat.st_gid)
+
+		print 'Copying "%s" to "%s"' % ( linkLocal, linkDest )
+		os.system('cp -ar "%s" "%s"' % ( linkLocal, linkDest ))
+	sys.exit(lsb.exitRC.OK)
