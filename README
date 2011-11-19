@@ -104,3 +104,10 @@ For Debian/Ubuntu:
    link('/var/log/apache2')
 
 Please let me know if these values work or do not work for you.
+
+OCF Resource
+------------
+
+drbdlinks can also be used as an OCF resource.  However, I don't fully
+understand how this is activated.  If anyone can fill in any details here,
+that would be appreciated.

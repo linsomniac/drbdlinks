@@ -23,17 +23,29 @@ drbdlinks \- manages links into a shared DRBD partition
 .SH DESCRIPTION
 
 .B drbdlinks
-is a program which manages links into a DRBD partition which is shared
-among several machines.  It is meant to be used in conjunction with the
-heartbeat system for simplifying management of high availability clusters.
-A simple configuration file, "/etc/drbdlinks.conf", specifies the links.
-This can be used to manage links for "/etc/apache", "/var/lib/pgsql",
-and other system files and directories that need to appear as if they
-are local to the system when running applications after a DRBD shared
-partition has been mounted.
+is a program that will manage creation and removal of symbolic links.
+It is primarily used with clusters of machines using either shared
+storage or the "DRBD" replicated block device.
 
-A sample configuration file with annotations is included in the drbdlinks
-distribution.
+While the name of the program is "drbdlinks", it can be used in any
+shared-storage sort of environment where the shared storage is only
+mounted on the active node.  In cases like NFS where the shared storage
+is always mounted on all nodes, drbdlinks is not necessary.
+
+The advantage over creating static symbolic links is that package updates
+often require that directories point at real files, so updates can often
+fail if you do not have the shared storage mounted.
+
+.B drbdlinks
+also supports multiple instances of links, in the case of
+active/active clusters.  For example, if you have MySQL running in one
+resource group, and Apache running in another, you can use the "-c"
+switch to specify a configuration file for each resource group.
+
+A simple configuration file, "/etc/drbdlinks.conf", specifies the links.
+This can be used to manage links for /etc/httpd, /var/lib/pgsql, and other
+system directories that need to appear as if they are local to the system
+when running applications after a drbd shared partition has been mounted.
 
 When run with "start" as the mode, drbdlinks will rename the existing
 files/directories, and then make symbolic links into the DRBD

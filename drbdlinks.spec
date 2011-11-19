@@ -43,6 +43,7 @@ partition isn't mounted, the links are in their normal state.
 #  make directories
 mkdir -p "$RPM_BUILD_ROOT"/etc//init.d/
 mkdir -p "$RPM_BUILD_ROOT"/etc/ha.d/resource.d/
+mkdir -p "$RPM_BUILD_ROOT"/usr/ocf/resource.d/tummy/
 mkdir -p "$RPM_BUILD_ROOT"/usr/sbin/
 mkdir -p "$RPM_BUILD_ROOT"/var/run/drbdlinks/configs-to-clean
 mkdir -p "%{buildroot}/%{_mandir}"/man8
@@ -50,6 +51,7 @@ mkdir -p "%{buildroot}/%{_mandir}"/man8
 #  copy over files
 cp drbdlinks "$RPM_BUILD_ROOT"/usr/sbin/
 ln -s ../../../usr/sbin/drbdlinks "$RPM_BUILD_ROOT"/etc/ha.d/resource.d/drbdlinks
+ln -s ../../../usr/sbin/drbdlinks "$RPM_BUILD_ROOT"/usr/ocf/resource.d/tummy/drbdlinks
 cp drbdlinks.conf "$RPM_BUILD_ROOT"/etc/
 cp drbdlinksclean.init "$RPM_BUILD_ROOT"/etc/init.d/drbdlinksclean
 cp drbdlinks.8 "%{buildroot}/%{_mandir}"/man8
@@ -68,6 +70,7 @@ chkconfig --del drbdlinksclean
 /usr/sbin/drbdlinks
 /etc/init.d/drbdlinksclean
 /etc/ha.d/resource.d/drbdlinks
+/usr/ocf/resource.d/tummy
 %dir /var/run/drbdlinks/configs-to-clean
 %config /etc/drbdlinks.conf
 %doc README LICENSE

@@ -214,13 +214,27 @@ options, args = parser.parse_args()
 origConfigFile = configFile
 configFile = options.configFile
 
+#  if called from OCF, parse the environment
+OCFenabled = os.environ.get('OCF_RA_VERSION_MAJOR') != None
+if OCFenabled:
+	try:
+		options.configFile = os.environ['OCF_RA_configfile']
+	except KeyError:
+		pass
+	try:
+		options.suffix = os.environ['OCF_RA_suffix']
+	except KeyError:
+		pass
+
 #  figure out what the mode to run in  {{{1
-if len(args) == 1:
+if len(args) == 1 or (OCFenabled and len(args) > 0):
+	#  NOTE: OCF specifies that additional arguments beyond the first should
+	#  be ignored.
 	if args[0] not in ( 'start', 'stop', 'auto', 'monitor', 'status', 'list',
 			'checklinks', 'initialize_shared_storage' ):
 		parser.error('ERROR: Unknown mode "%s", expecting one of '
-				'(start|stop|auto|status|monitor|list|checklinks|\n'
-				'      initialize_shared_storage)' % args[0])
+				'(start|stop|auto|\n      status|monitor|list|checklinks|'
+				'initialize_shared_storage)' % args[0])
 		sys.exit(lsb.exitRC.ENOTSUPPORTED)
 	mode = args[0]
 else:
@@ -468,4 +482,66 @@ elif mode == 'initialize_shared_storage':
 
 		print 'Copying "%s" to "%s"' % ( linkLocal, linkDest )
 		os.system('cp -ar "%s" "%s"' % ( linkLocal, linkDest ))
+	sys.exit(lsb.exitRC.OK)
+
+#  meta-data mode  {{{1
+elif mode == 'meta-data':
+	print '''
+<?xml version="1.0"?>
+<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
+
+<!-- Root element: give the name of the Resource agent -->
+<resource-agent name="drbdlinks" version="@@@VERSION@@@">
+
+<!-- Version number of the standard this complies with -->
+<version>1.0</version>
+
+<!-- List all the instance parameters the RA supports or requires. -->
+<parameters>
+
+<!-- Note that parameters flagged with 'unique' must be unique; ie no
+     other resource instance of this resource type may have the same set
+     of unique parameters.
+ -->
+ 
+<parameter name="configfile" unique="1">
+<longdesc lang="en">
+The full path of the configuration file on disc.  The default is
+/etc/drbdlinks.conf, but you may wish to store this on the shared
+storage, or have different config files if you have multiple
+resource groups.
+</longdesc>
+
+<shortdesc lang="en">Configuration Filename</shortdesc>
+
+<content type="string" default="/etc/drbdlinks.conf" />
+
+</parameter>
+
+<parameter name="suffix">
+<longdesc lang="en">
+The suffix of the files/directories that are moved out of the way on the host
+file-system to make room for the symlink.  By default this is ".drbdlinks".
+</longdesc>
+
+<shortdesc lang="en">Host Filename Suffix</shortdesc>
+
+<content type="string" default=".drbdlinks" />
+
+</parameter>
+
+</parameters>
+
+<!-- List the actions supported by the RA -->
+<actions>
+
+<action name="start"   timeout="1m" />
+<action name="stop"    timeout="1m" />
+<action name="status" depth="0"  timeout="20" interval="10" start-delay="1m" />
+<action name="meta-data"  timeout="5" />
+
+</actions>
+
+</resource-agent>
+'''
 	sys.exit(lsb.exitRC.OK)

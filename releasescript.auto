@@ -7,10 +7,10 @@ dir=`pwd`
 rev=${dir##*-}
 for spec in *.spec
 do
-	cp "${spec}" "${spec}.old"
-	sed 's/^%define version.*/%define version '"$rev"'/' "${spec}.old" >"${spec}"
-	rm -f "${spec}.old"
+	sed -i 's/^%define version.*/%define version '"$rev"'/' "${spec}"
 done
+
+sed -i 's/@@@VERSION@@@/'"$rev"'/' drbdlinks
 
 #  send a release notification
 if [ -f ~/.notify-drbdlinks ]; then
