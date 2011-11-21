@@ -12,7 +12,6 @@ cleanConfigsDirectory = '/var/run/drbdlinks/configs-to-clean'
 import os, string, re, sys, stat, syslog, shutil
 syslog.openlog('drbdlinks', syslog.LOG_PID)
 
-#  import optik parser
 try:
 	import optparse
 except ImportError:
