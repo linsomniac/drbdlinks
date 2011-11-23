@@ -172,6 +172,8 @@ def loadConfigFile(configFile):  #{{{1
 		execfile(configFile, {}, namespace)
 	except Exception, e:
 		print 'ERROR: Loading configuration file failed.  See below for details:'
+		print 'Environment: %s' % repr([ '%s=%s' % i
+				for i in os.environ.items() if i[0].startswith('OCF_') ])
 		raise
 	
 	#  process the data we got
@@ -276,19 +278,19 @@ parser.set_usage('%prog (start|stop|auto|status|monitor|list|checklinks|\n'
 		'        initialize_shared_storage)')
 options, args = parser.parse_args()
 origConfigFile = configFile
-configFile = options.configFile
 
 #  if called from OCF, parse the environment
 OCFenabled = os.environ.get('OCF_RA_VERSION_MAJOR') != None
 if OCFenabled:
 	try:
-		options.configFile = os.environ['OCF_RA_configfile']
+		options.configFile = os.environ['OCF_RESKEY_configfile']
 	except KeyError:
 		pass
 	try:
-		options.suffix = os.environ['OCF_RA_suffix']
+		options.suffix = os.environ['OCF_RESKEY_suffix']
 	except KeyError:
 		pass
+configFile = options.configFile
 
 #  figure out what the mode to run in  {{{1
 if len(args) == 1 or (OCFenabled and len(args) > 0):
@@ -314,7 +316,8 @@ except IOError, e:
 		if mode == 'monitor' or mode == 'status':
 			print ('WARNING: Config file "%s" not found, assuming drbdlinks '
 					'is stopped' % configFile)
-			sys.exit(lsb.statusRC.STOPPED)
+			if mode == 'status': sys.exit(lsb.statusRC.STOPPED)
+			else: sys.exit(lsb.exitRC.NOTRUNNING)
 		print 'ERROR: Unable to open config file "%s":' % configFile
 		print '  ', str(e)
 		syslog.syslog('Invalid config file "%s"' % configFile)
