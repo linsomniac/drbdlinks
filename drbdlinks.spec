@@ -51,7 +51,7 @@ mkdir -p "%{buildroot}/%{_mandir}"/man8
 #  copy over files
 cp drbdlinks "$RPM_BUILD_ROOT"/usr/sbin/
 ln -s ../../../usr/sbin/drbdlinks "$RPM_BUILD_ROOT"/etc/ha.d/resource.d/drbdlinks
-ln -s ../../../usr/sbin/drbdlinks "$RPM_BUILD_ROOT"/usr/lib/ocf/resource.d/tummy/drbdlinks
+ln -s ../../../sbin/drbdlinks "$RPM_BUILD_ROOT"/usr/lib/ocf/resource.d/tummy/drbdlinks
 cp drbdlinks.conf "$RPM_BUILD_ROOT"/etc/
 cp drbdlinksclean.init "$RPM_BUILD_ROOT"/etc/init.d/drbdlinksclean
 cp drbdlinks.8 "%{buildroot}/%{_mandir}"/man8
