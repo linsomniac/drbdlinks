@@ -2,7 +2,8 @@ DRBDLINKS README
 ================
 
 Sean Reifschneider <jafo@tummy.com>  
-Saturday November 19, 2011  
+Homepage: [http://www.tummy.com/Community/software/drbdlinks/](http://www.tummy.com/Community/software/drbdlinks/)  
+Code/bugfixes: [https://github.com/linsomniac/drbdlinks](https://github.com/linsomniac/drbdlinks)  
 drbdlinks is under the following license: GPLv2
 
 Overview
@@ -10,7 +11,9 @@ Overview
 
 drbdlinks is a program that will manage creation and removal of symbolic
 links.  It is primarily used with clusters of machines using either shared
-storage or the "DRBD" replicated block device.
+storage or the "DRBD" replicated block device.  It has the ability to fix
+SELinux contexts and restart cron and syslog as part of the linking
+process.
 
 While the name of the program is "drbdlinks", it can be used in any
 shared-storage sort of environment where the shared storage is only mounted

@@ -3,7 +3,7 @@
 #  Manage a set of links into a DRBD shared directory
 #
 #  Written by: Sean Reifschneider <jafo@tummy.com>
-#  Copyright (c) 2004, tummy.com, ltd.  All Rights Reserved
+#  Copyright (c) 2004-2011, tummy.com, ltd.  All Rights Reserved
 #  drbdlinks is under the following license: GPLv2
 
 configFile = '/etc/drbdlinks.conf'
