@@ -1,3 +1,7 @@
+================================
+Version 1.21 -- Sun Nov 27, 2011
+
+Thanks to Alan Robertson for testing and providing fixes for the OCFS code!
 Supporting being run as an OCF resource.  Suggested by Alan Robertson.
       PACKAGER NOTE: drbdlinks now also needs to be installed in
       /usr/ocf/resource.d/tummy/drbdlinks as well as the previous
