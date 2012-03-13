@@ -254,7 +254,7 @@ file-system to make room for the symlink.  By default this is ".drbdlinks".
 </actions>
 
 </resource-agent>
-'''
+'''.strip()
 	sys.exit(lsb.exitRC.OK)
 
 
