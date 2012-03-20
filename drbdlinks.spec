@@ -45,7 +45,7 @@ mkdir -p "$RPM_BUILD_ROOT"/etc//init.d/
 mkdir -p "$RPM_BUILD_ROOT"/etc/ha.d/resource.d/
 mkdir -p "$RPM_BUILD_ROOT"/usr/lib/ocf/resource.d/tummy/
 mkdir -p "$RPM_BUILD_ROOT"/usr/sbin/
-mkdir -p "$RPM_BUILD_ROOT"/var/run/drbdlinks/configs-to-clean
+mkdir -p "$RPM_BUILD_ROOT"/var/lib/drbdlinks/configs-to-clean
 mkdir -p "%{buildroot}/%{_mandir}"/man8
 
 #  copy over files
@@ -71,7 +71,7 @@ chkconfig --del drbdlinksclean
 /etc/init.d/drbdlinksclean
 /etc/ha.d/resource.d/drbdlinks
 /usr/lib/ocf/resource.d/tummy
-%dir /var/run/drbdlinks/configs-to-clean
+%dir /var/lib/drbdlinks/configs-to-clean
 %config /etc/drbdlinks.conf
 %doc README LICENSE
 %{_mandir}/man8/*

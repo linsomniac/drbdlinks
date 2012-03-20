@@ -7,7 +7,7 @@
 #  drbdlinks is under the following license: GPLv2
 
 configFile = '/etc/drbdlinks.conf'
-cleanConfigsDirectory = '/var/run/drbdlinks/configs-to-clean'
+cleanConfigsDirectory = '/var/lib/drbdlinks/configs-to-clean'
 
 import os, string, re, sys, stat, syslog, shutil
 syslog.openlog('drbdlinks', syslog.LOG_PID)

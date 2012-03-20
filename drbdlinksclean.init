@@ -26,7 +26,9 @@
 
 FOUNDFILE=0
 [ -f /etc/drbdlinks.conf ] && FOUNDFILE=1
-for FILE in /var/run/drbdlinks/configs-to-clean/*
+#  also clean up old /var/run location.
+for FILE in /var/lib/drbdlinks/configs-to-clean/* \
+		/var/run/drbdlinks/configs-to-clean/*
 do
 	[ ! -f "$FILE" ] && continue
 	FOUNDFILE=1
@@ -63,7 +65,8 @@ case "$1" in
 		fi
 
 		#  clean up any supplemental config files
-		for FILE in /var/run/drbdlinks/configs-to-clean/*
+		for FILE in /var/lib/drbdlinks/configs-to-clean/* \
+				/var/run/drbdlinks/configs-to-clean/*
 		do
 			[ ! -f "$FILE" ] && continue
 			echo -n "Cleaning up '${FILE##*/}' links..."
