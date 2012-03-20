@@ -67,6 +67,8 @@ case "$1" in
 		do
 			[ ! -f "$FILE" ] && continue
 			echo -n "Cleaning up '${FILE##*/}' links..."
+			echo "Cleaning up '${FILE##*/}' links..." | \
+					logger -t drbdlinksclean
 			/usr/sbin/drbdlinks --config-file "$FILE" stop || RET=$?
 		done
 

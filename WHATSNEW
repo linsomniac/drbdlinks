@@ -1,3 +1,4 @@
+Adding a syslog note to drbdlinksclean when it cleans up copied configs.
 The XML meta-data needs to have blank lines removed, reported by
       Alan Robertson.
 
