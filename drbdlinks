@@ -536,6 +536,7 @@ elif mode == 'initialize_shared_storage':
 			destdirname = os.path.dirname(destdirname)
 		return l[::-1]
 
+	relative_symlinks = []
 	for linkLocal, linkDest, useBindMount in config.linkList:
 		if os.path.exists(linkDest):
 			continue
@@ -549,4 +550,15 @@ elif mode == 'initialize_shared_storage':
 
 		print 'Copying "%s" to "%s"' % ( linkLocal, linkDest )
 		os.system('cp -ar "%s" "%s"' % ( linkLocal, linkDest ))
+
+		fp = os.popen('find "%s" -type l -lname "[^/].*" -print0', linkLocal)
+		relative_symlinks += fp.read().split('\0')
+		fp.close()
+
+	if relative_symlinks:
+		print ('\nWARNING: The following copied files contain non-absolute '
+				'symlinks:\n')
+		for symlink in relative_symlinks:
+			print '   %s -> %s' % ( symlink, os.readlink(symlink) )
+
 	sys.exit(lsb.exitRC.OK)
