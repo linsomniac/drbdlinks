@@ -1,3 +1,6 @@
+Produce warning if copying symlinks in "initialize_shared_storage".
+      Suggested by Alan Robertson
+
 ================================
 Version 1.22 -- Tue Mar 20, 2012
 

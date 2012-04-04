@@ -556,7 +556,7 @@ elif mode == 'initialize_shared_storage':
 		fp.close()
 
 	if relative_symlinks:
-		print ('\nWARNING: The following copied files contain non-absolute '
+		print ('\nWARNING: The following copied files contain relative '
 				'symlinks:\n')
 		for symlink in relative_symlinks:
 			print '   %s -> %s' % ( symlink, os.readlink(symlink) )
