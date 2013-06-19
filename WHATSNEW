@@ -1,3 +1,7 @@
+================================
+Version 1.23 -- Tue Jun 18, 2012
+
+Changing configs-to-clean to be under "/var/lib" rather than "/var/run".
 Produce warning if copying symlinks in "initialize_shared_storage".
       Suggested by Alan Robertson
 
