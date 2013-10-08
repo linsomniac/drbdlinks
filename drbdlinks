@@ -9,7 +9,7 @@
 configFile = '/etc/drbdlinks.conf'
 cleanConfigsDirectory = '/var/lib/drbdlinks/configs-to-clean'
 
-import os, string, re, sys, stat, syslog, shutil
+import os, string, sys, stat, syslog, shutil
 syslog.openlog('drbdlinks', syslog.LOG_PID)
 
 try:
@@ -551,7 +551,7 @@ elif mode == 'initialize_shared_storage':
 		print 'Copying "%s" to "%s"' % ( linkLocal, linkDest )
 		os.system('cp -ar "%s" "%s"' % ( linkLocal, linkDest ))
 
-		fp = os.popen('find "%s" -type l -lname "[^/].*" -print0', linkLocal)
+		fp = os.popen('find "%s" -type l -lname "[^/].*" -print0' % linkLocal)
 		relative_symlinks += fp.read().split('\0')
 		fp.close()
 
