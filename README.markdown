@@ -6,6 +6,12 @@ Homepage: [http://www.tummy.com/Community/software/drbdlinks/](http://www.tummy.
 Code/bugfixes: [https://github.com/linsomniac/drbdlinks](https://github.com/linsomniac/drbdlinks)  
 drbdlinks is under the following license: GPLv2
 
+Status
+------
+
+drbdlinks is stable and in maintenance mode.  It is included in many
+distributions (Debian, Ubuntu, Fedora, CentOS and variants).
+
 Overview
 --------
 
