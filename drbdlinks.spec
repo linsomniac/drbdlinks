@@ -73,5 +73,5 @@ chkconfig --del drbdlinksclean
 /usr/lib/ocf/resource.d/tummy
 %dir /var/lib/drbdlinks/configs-to-clean
 %config /etc/drbdlinks.conf
-%doc README LICENSE
+%doc README.markdown LICENSE
 %{_mandir}/man8/*

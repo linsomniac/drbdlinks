@@ -1,5 +1,5 @@
 ================================
-Version 1.24 -- Sun Oct 13, 2013
+Version 1.25 -- Sun Oct 13, 2013
 
 Fixing string formatting exception in initialize_shared_storage.
       Fix by Flavio Grossi
