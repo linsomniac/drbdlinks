@@ -610,7 +610,7 @@ elif mode == 'initialize_shared_storage':
         os.system('cp -ar "%s" "%s"' % (linkLocal, linkDest))
 
         fp = os.popen('find "%s" -type l -lname "[^/].*" -print0' % linkLocal)
-        relative_symlinks += [ l for l in fp.read().split('\0') if l ]
+        relative_symlinks += [l for l in fp.read().split('\0') if l]
         fp.close()
 
     if relative_symlinks:

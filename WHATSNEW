@@ -1,4 +1,10 @@
 ================================
+Version 1.26 -- Sat Mar 01, 2014
+
+"Link local" relative symlink detection would add empty strings.strings
+      Fix by Flavio Grossi
+
+================================
 Version 1.25 -- Sun Oct 13, 2013
 
 Fixing string formatting exception in initialize_shared_storage.
