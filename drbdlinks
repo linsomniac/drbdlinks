@@ -62,7 +62,11 @@ def log(s):
 def multiInitRestart(flavor, initscript_list):
     for initscript in initscript_list:
         if os.path.exists(initscript):
-            retcode = os.system('%s restart' % initscript)
+            if initscript.endswith(".service"):
+                retcode = os.system(
+                    'systemctl restart %s' % initscript.rsplit('/', 1)[1])
+            else:
+                retcode = os.system('%s restart' % initscript)
             if retcode != 0:
                 log('%s restart returned %d, expected 0' % (flavor, retcode))
             return(retcode != 0)
@@ -78,7 +82,8 @@ def restartSyslog(config):
         return(0)
 
     return multiInitRestart(
-        'syslog', ['/etc/init.d/syslog', '/etc/init.d/rsyslog'])
+        'syslog', ['/etc/init.d/syslog', '/etc/init.d/rsyslog',
+                   '/usr/lib/systemd/system/rsyslog.service'])
 
 
 ########################
@@ -87,7 +92,8 @@ def restartCron(config):
         return(0)
 
     return multiInitRestart(
-        'cron', ['/etc/init.d/crond', '/etc/init.d/cron'])
+        'cron', ['/etc/init.d/crond', '/etc/init.d/cron',
+                 '/usr/lib/systemd/system/crond.service'])
 
 
 #######################
