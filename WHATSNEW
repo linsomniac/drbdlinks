@@ -4,6 +4,12 @@ Adding "/etc/drbdlinks.d/*.conf" file loading.
       Suggested by ymartin59 on github.
 
 ================================
+Version 1.27 -- Sun Sep 07, 2014
+
+Adds support for systemd services (e.g. on RHEL/CentOS 7)
+      Patch by Robert Scheck
+
+================================
 Version 1.26 -- Sat Mar 01, 2014
 
 "Link local" relative symlink detection would add empty strings.strings
