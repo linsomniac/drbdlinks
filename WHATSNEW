@@ -1,3 +1,5 @@
+Removing trailing "/" on "link()" destination when given a single argument.
+      Reported by ymartin59 on github in #4.
 Adding "/etc/drbdlinks.d/*.conf" file loading.
       Suggested by ymartin59 on github.
 

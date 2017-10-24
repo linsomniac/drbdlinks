@@ -207,7 +207,7 @@ def loadConfigFile(configFile):
                     'in the config file.\n')
                 sys.exit(3)
             arg2 = string.lstrip(oldList[0], '/')
-            arg2 = os.path.join(config.mountpoint, arg2)
+            arg2 = os.path.join(config.mountpoint, arg2).rstrip('/')
         config.linkList[i] = (
             [string.rstrip(oldList[0], '/'), arg2] + list(oldList[2:]))
 
