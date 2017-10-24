@@ -47,6 +47,10 @@ This can be used to manage links for /etc/httpd, /var/lib/pgsql, and other
 system directories that need to appear as if they are local to the system
 when running applications after a drbd shared partition has been mounted.
 
+Optionally, configuration directives can also be written to files in
+"/etc/drbdlinks.d" with the suffix ".conf", which are loaded after the
+"/etc/drbdlinks.conf" file, in sorted order.
+
 When run with "start" as the mode, drbdlinks will rename the existing
 files/directories, and then make symbolic links into the DRBD
 partition.  "stop" does the reverse.
