@@ -106,20 +106,20 @@ following.
 
 For RHEL/CentOS/Fedora:
 
-   link('/etc/httpd/conf.d')
-   link('/etc/httpd/conf/httpd.conf')
-   link('/var/log/httpd')
+    link('/etc/httpd/conf.d')
+    link('/etc/httpd/conf/httpd.conf')
+    link('/var/log/httpd')
 
 For Debian/Ubuntu:
 
-   link('/etc/apache2/mods-enabled')
-   link('/etc/apache2/sites-enabled')
-   link('/etc/apache2/sites-available')
-   link('/etc/apache2/conf.d')
-   link('/etc/apache2/ports.conf')
-   link('/etc/apache2/envvars')
-   link('/etc/apache2/apache2.conf')
-   link('/var/log/apache2')
+    link('/etc/apache2/mods-enabled')
+    link('/etc/apache2/sites-enabled')
+    link('/etc/apache2/sites-available')
+    link('/etc/apache2/conf.d')
+    link('/etc/apache2/ports.conf')
+    link('/etc/apache2/envvars')
+    link('/etc/apache2/apache2.conf')
+    link('/var/log/apache2')
 
 Please let me know if these values work or do not work for you.
 
