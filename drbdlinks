@@ -7,6 +7,7 @@
 #  drbdlinks is under the following license: GPLv2
 
 configFile = '/etc/drbdlinks.conf'
+configDir = '/etc/drbdlinks.d/*.conf'
 cleanConfigsDirectory = '/var/lib/drbdlinks/configs-to-clean'
 
 import os
@@ -15,6 +16,7 @@ import sys
 import stat
 import syslog
 import shutil
+import glob
 
 syslog.openlog('drbdlinks', syslog.LOG_PID)
 
@@ -184,17 +186,18 @@ def loadConfigFile(configFile):
         'cleanthisconfig': config.cmd_cleanthisconfig,
     }
 
-    #  load the file
-    try:
-        execfile(configFile, {}, namespace)
-    except Exception:
-        print (
-            'ERROR: Loading configuration file failed.  '
-            'See below for details:')
-        print 'Environment: %s' % repr(
-            ['%s=%s' % i for i in os.environ.items()
-                if i[0].startswith('OCF_')])
-        raise
+    #  load the files
+    for filename in [configFile] + sorted(glob.iglob(configDir)):
+        try:
+            execfile(filename, {}, namespace)
+        except Exception:
+            print (
+                'ERROR: Loading configuration file "%s" failed.  '
+                'See below for details:' % filename)
+            print 'Environment: %s' % repr(
+                ['%s=%s' % i for i in os.environ.items()
+                    if i[0].startswith('OCF_')])
+            raise
 
     #  process the data we got
     if config.mountpoint:
@@ -210,7 +213,7 @@ def loadConfigFile(configFile):
                     'in the config file.\n')
                 sys.exit(3)
             arg2 = string.lstrip(oldList[0], '/')
-            arg2 = os.path.join(config.mountpoint, arg2)
+            arg2 = os.path.join(config.mountpoint, arg2).rstrip('/')
         config.linkList[i] = (
             [string.rstrip(oldList[0], '/'), arg2] + list(oldList[2:]))
 
