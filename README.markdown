@@ -1,7 +1,7 @@
 DRBDLINKS README
 ================
 
-Sean Reifschneider <jafo@tummy.com>  
+Sean Reifschneider <jafo00@gmail.com>  
 Homepage: [http://www.tummy.com/Community/software/drbdlinks/](http://www.tummy.com/Community/software/drbdlinks/)  
 Code/bugfixes: [https://github.com/linsomniac/drbdlinks](https://github.com/linsomniac/drbdlinks)  
 drbdlinks is under the following license: GPLv2

@@ -1,14 +1,18 @@
 ================================
-Version 1.27 -- Thu Oct 26, 2017
+Version 1.28 -- Thu Oct 26, 2017
 
 Added documentation for OCF resource.
-      Patch by Robert Scheck
-Adds support for systemd services (e.g. on RHEL/CentOS 7)
       Patch by Robert Scheck
 Removing trailing "/" on "link()" destination when given a single argument.
       Reported by ymartin59 on github in #4.
 Adding "/etc/drbdlinks.d/*.conf" file loading.
       Suggested by ymartin59 on github.
+
+================================
+Version 1.27 -- Sun Sep 07, 2014
+
+Adds support for systemd services (e.g. on RHEL/CentOS 7)
+      Patch by Robert Scheck
 
 ================================
 Version 1.26 -- Sat Mar 01, 2014
