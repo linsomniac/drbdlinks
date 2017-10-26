@@ -126,6 +126,51 @@ Please let me know if these values work or do not work for you.
 OCF Resource
 ------------
 
-drbdlinks can also be used as an OCF resource.  However, I don't fully
-understand how this is activated.  If anyone can fill in any details here,
-that would be appreciated.
+drbdlinks can also be used as an OCF resource.  Following example could
+contain RHEL/CentOS/Fedora specific paths and names, but should give an
+impression how drbdlinks could be used in a Pacemaker cluster setup.  It
+of course requires Corosync and Pacemaker configuration before, see the
+ClusterLabs documentation for details.
+
+Create a Pacemaker resource for DRBD resource "data", assumes existing
+DRBD configuration:
+
+    pcs cluster cib data_drbd_cfg
+    pcs -f data_drbd_cfg resource create data_drbd ocf:linbit:drbd drbd_resource=data
+    pcs -f data_drbd_cfg resource op add data_drbd start interval=0 timeout=120s
+    pcs -f data_drbd_cfg resource op add data_drbd stop interval=0 timeout=60s
+    pcs -f data_drbd_cfg resource op add data_drbd monitor role=Master interval=59s timeout=30s
+    pcs -f data_drbd_cfg resource op add data_drbd monitor role=Slave interval=60s timeout=30s
+    pcs -f data_drbd_cfg resource master data_clone data_drbd master-max=1 master-node-max=1 clone-max=2 clone-node-max=1 notify=true
+    pcs cluster cib-push data_drbd_cfg
+
+Filesystem resource to mount ext4 filesystem on /dev/drbd0 to /data (after
+DRBD device got primary), assumes existing ext4 filesystem on DRBD device:
+
+    pcs cluster cib data_fs_cfg
+    pcs -f data_fs_cfg resource create data_fs ocf:heartbeat:Filesystem device="/dev/drbd0" directory="/data" fstype="ext4" op monitor interval=60s
+    pcs -f data_fs_cfg constraint colocation add data_fs data_clone INFINITY with-rsc-role=Master
+    pcs -f data_fs_cfg constraint order promote data_clone then start data_fs
+    pcs cluster cib-push data_fs_cfg
+
+Resource for drbdlinks to create symbolic links as per /etc/drbdlinks.conf;
+on same node but after the filesystem was mounted, assumes proper drbdlinks
+configuration before:
+ 
+    pcs cluster cib drbdlinks_cfg
+    pcs -f drbdlinks_cfg resource create drbdlinks ocf:tummy:drbdlinks op monitor interval=60s
+    pcs -f drbdlinks_cfg constraint colocation add drbdlinks data_fs INFINITY
+    pcs -f drbdlinks_cfg constraint order data_fs then drbdlinks
+    pcs cluster cib-push drbdlinks_cfg
+
+Apache resource that shall handle its configuration and log files on DRBD
+partition (after drbdlinks was started):
+
+    pcs cluster cib httpd_cfg
+    pcs -f httpd_cfg resource create httpd systemd:httpd
+    pcs -f httpd_cfg resource op add httpd monitor interval=60s timeout=30s
+    pcs -f httpd_cfg resource op add httpd start interval=0 timeout=120s
+    pcs -f httpd_cfg resource op add httpd stop interval=0 timeout=120s
+    pcs -f httpd_cfg constraint colocation add httpd drbdlinks INFINITY
+    pcs -f httpd_cfg constraint order drbdlinks then httpd
+    pcs cluster cib-push httpd_cfg
