@@ -26,6 +26,18 @@ except ImportError:
     import optik
     optparse = optik
 
+try:
+    execfile
+except NameError:
+    def execfile(filepath, globals=None, locals=None):
+        with open(filepath, 'rb') as file:
+            exec(compile(file.read(), filepath, 'exec'), globals, locals)
+
+try:
+    xrange
+except NameError:
+    xrange = range
+
 
 class lsb:
     class statusRC:
@@ -107,12 +119,12 @@ def testConfig(config):
         if not os.path.exists(suffixName):
             allUp = 0
             if options.verbose >= 1:
-                print (
+                print(
                     'testConfig: Original file not present: "%s"' % suffixName)
             continue
 
     if options.verbose >= 1:
-        print 'testConfig: Returning %s' % allUp
+        print('testConfig: Returning %s' % allUp)
     return(allUp)
 
 
@@ -130,6 +142,7 @@ def loadConfigFile(configFile):
             self.restartSyslog = 0
             self.restartCron = 0
             self.makeMountpointShared = 0
+            self.showContextCommand = None
 
             #  Locate where the selinuxenabled binary is
             for path in (
@@ -144,6 +157,15 @@ def loadConfigFile(configFile):
                 ret = os.system(self.selinuxenabledPath)
                 if ret == 0:
                     self.useSELinux = 1
+
+            #  detect what ls(1) supports to show SELinux context
+            fp = os.popen('ls --scontext "%s" 2>&1' % __file__, 'r')
+            fp.readline()
+            ret = fp.close()
+            if ret is not None and (ret >> 8) > 0:
+                self.showContextCommand = 'ls -d -Z -1 "%s"'
+            else:
+                self.showContextCommand = 'ls -d --scontext "%s"'
 
         def cmd_cleanthisconfig(self, enabled=1):
             self.cleanthisconfig = enabled
@@ -191,38 +213,38 @@ def loadConfigFile(configFile):
         try:
             execfile(filename, {}, namespace)
         except Exception:
-            print (
+            print(
                 'ERROR: Loading configuration file "%s" failed.  '
                 'See below for details:' % filename)
-            print 'Environment: %s' % repr(
+            print('Environment: %s' % repr(
                 ['%s=%s' % i for i in os.environ.items()
-                    if i[0].startswith('OCF_')])
+                    if i[0].startswith('OCF_')]))
             raise
 
     #  process the data we got
     if config.mountpoint:
-        config.mountpoint = string.rstrip(config.mountpoint, '/')
+        config.mountpoint = str.rstrip(config.mountpoint, '/')
     for i in xrange(len(config.linkList)):
         oldList = config.linkList[i]
         if oldList[1]:
-            arg2 = string.rstrip(oldList[1], '/')
+            arg2 = str.rstrip(oldList[1], '/')
         else:
             if not config.mountpoint:
                 log(
                     'ERROR: Used link() when no mountpoint() was set '
                     'in the config file.\n')
                 sys.exit(3)
-            arg2 = string.lstrip(oldList[0], '/')
+            arg2 = str.lstrip(oldList[0], '/')
             arg2 = os.path.join(config.mountpoint, arg2).rstrip('/')
         config.linkList[i] = (
-            [string.rstrip(oldList[0], '/'), arg2] + list(oldList[2:]))
+            [str.rstrip(oldList[0], '/'), arg2] + list(oldList[2:]))
 
     #  return the data  {{{2
     return(config)
 
 
 def print_metadata():
-    print '''
+    print('''
 <?xml version="1.0"?>
 <!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
 
@@ -279,7 +301,7 @@ file-system to make room for the symlink.  By default this is ".drbdlinks".
 </actions>
 
 </resource-agent>
-'''.strip()
+'''.strip())
     sys.exit(lsb.exitRC.OK)
 
 
@@ -338,23 +360,23 @@ else:
     parser.error('Expected exactly one argument to specify the mode.')
     sys.exit(lsb.exitRC.EINVAL)
 if options.verbose >= 2:
-    print 'Initial mode: "%s"' % mode
+    print('Initial mode: "%s"' % mode)
 
 #  load config file  {{{1
 try:
     config = loadConfigFile(configFile)
-except IOError, e:
+except IOError as e:
     if e.errno == 2:
         if mode == 'monitor' or mode == 'status':
-            print (
+            print(
                 'WARNING: Config file "%s" not found, assuming drbdlinks '
                 'is stopped' % configFile)
             if mode == 'status':
                 sys.exit(lsb.statusRC.STOPPED)
             else:
                 sys.exit(lsb.exitRC.NOTRUNNING)
-        print 'ERROR: Unable to open config file "%s":' % configFile
-        print '  ', str(e)
+        print('ERROR: Unable to open config file "%s":' % configFile)
+        print('  ', str(e))
         syslog.syslog('Invalid config file "%s"' % configFile)
         sys.exit(lsb.statusRC.UNKNOWN)
     raise
@@ -388,17 +410,17 @@ if mode == 'auto':
     if (os.stat(config.mountpoint).st_dev !=
             os.stat(os.path.join(config.mountpoint, '..')).st_dev):
         if options.verbose >= 1:
-            print 'Detected mounted file-system on "%s"' % config.mountpoint
+            print('Detected mounted file-system on "%s"' % config.mountpoint)
         mode = 'start'
     else:
         mode = 'stop'
 if options.verbose >= 1:
-    print 'Mode: "%s"' % mode
+    print('Mode: "%s"' % mode)
 
 # just display the list of links  {{{1
 if mode == 'list':
     for linkLocal, linkDest, useBindMount in config.linkList:
-        print linkLocal, linkDest, useBindMount
+        print('%s %s %s' % (linkLocal, linkDest, useBindMount))
     sys.exit(0)
 
 #  set up links  {{{1
@@ -416,23 +438,23 @@ if mode == 'start':
         #  check to see if the link is in place  {{{3
         if os.path.exists(suffixName):
             if options.verbose >= 1:
-                print (
+                print(
                     'Skipping, appears to already be linked: "%s"' % linkLocal)
             continue
 
         #  make the link  {{{3
         try:
             if options.verbose >= 2:
-                print 'Renaming "%s" to "%s"' % (linkLocal, suffixName)
+                print('Renaming "%s" to "%s"' % (linkLocal, suffixName))
             os.rename(linkLocal, suffixName)
             anyLinksChanged = 1
-        except (OSError, IOError), e:
+        except (OSError, IOError) as e:
             log(
                 'Error renaming "%s" to "%s": %s\n'
                 % (suffixName, linkLocal, str(e)))
             errorCount = errorCount + 1
             if options.verbose >= 2:
-                print 'Linking "%s" to "%s"' % (linkDest, linkLocal)
+                print('Linking "%s" to "%s"' % (linkDest, linkLocal))
             anyLinksChanged = 1
 
         if useBindMount:
@@ -445,7 +467,7 @@ if mode == 'start':
         else:
             try:
                 os.symlink(linkDest, linkLocal)
-            except (OSError, IOError), e:
+            except (OSError, IOError) as e:
                 log(
                     'Error linking "%s" to "%s": %s'
                     % (linkDest, linkLocal, str(e)))
@@ -453,12 +475,12 @@ if mode == 'start':
 
         #  set up in SELinux
         if config.useSELinux:
-            fp = os.popen('ls -d --scontext "%s"' % suffixName, 'r')
+            fp = os.popen(config.showContextCommand % suffixName, 'r')
             line = fp.readline()
             fp.close()
             if line:
-                line = string.split(line, ' ')[0]
-                seInfo = string.split(line, ':')
+                line = str.split(line, ' ')[0]
+                seInfo = str.split(line, ':')
                 seUser, seRole, seType = seInfo[:3]
                 if len(seInfo) >= 4:
                     seRange = seInfo[3]
@@ -503,7 +525,7 @@ elif mode == 'stop':
         #  check to see if the link is in place  {{{3
         if not os.path.exists(suffixName):
             if options.verbose >= 1:
-                print (
+                print(
                     'Skipping, appears to already be shut down: "%s"'
                     % linkLocal)
             continue
@@ -511,7 +533,7 @@ elif mode == 'stop':
         #  break the link  {{{3
         try:
             if options.verbose >= 2:
-                print 'Removing "%s"' % (linkLocal,)
+                print('Removing "%s"' % (linkLocal,))
             anyLinksChanged = 1
 
             if useBindMount:
@@ -524,15 +546,15 @@ elif mode == 'stop':
                     os.rmdir(linkLocal)
             else:
                 os.remove(linkLocal)
-        except (OSError, IOError), e:
+        except (OSError, IOError) as e:
             log('Error removing "%s": %s\n' % (linkLocal, str(e)))
             errorCount = errorCount + 1
         try:
             if options.verbose >= 2:
-                print 'Renaming "%s" to "%s"' % (suffixName, linkLocal)
+                print('Renaming "%s" to "%s"' % (suffixName, linkLocal))
             os.rename(suffixName, linkLocal)
             anyLinksChanged = 1
-        except (OSError, IOError), e:
+        except (OSError, IOError) as e:
             log(
                 'Error renaming "%s" to "%s": %s\n'
                 % (suffixName, linkLocal, str(e)))
@@ -564,12 +586,12 @@ elif mode == 'monitor':
 #  status mode  {{{1
 elif mode == 'status':
     if testConfig(config):
-        print "info: DRBD Links OK (present)"
+        print("info: DRBD Links OK (present)")
         if config.debug:
             syslog.syslog('Status mode returning ok')
         sys.exit(lsb.statusRC.OK)
 
-    print "info: DRBD Links stopped (not set up)"
+    print("info: DRBD Links stopped (not set up)")
     if config.debug:
         syslog.syslog('Status mode returning stopped')
     sys.exit(lsb.statusRC.STOPPED)
@@ -578,7 +600,7 @@ elif mode == 'status':
 elif mode == 'checklinks':
     for linkLocal, linkDest, useBindMount in config.linkList:
         if not os.path.exists(linkDest):
-            print 'Doest not exist:', linkDest
+            print('Does not exist:', linkDest)
     sys.exit(lsb.exitRC.OK)
 
 
@@ -609,13 +631,13 @@ elif mode == 'initialize_shared_storage':
             continue
 
         for src, dest in dirs_to_make(linkLocal, linkDest):
-            print 'Making directory "%s"' % dest
+            print('Making directory "%s"' % dest)
             os.mkdir(dest)
             srcstat = os.stat(src)
             os.chmod(dest, srcstat.st_mode)
             os.chown(dest, srcstat.st_uid, srcstat.st_gid)
 
-        print 'Copying "%s" to "%s"' % (linkLocal, linkDest)
+        print('Copying "%s" to "%s"' % (linkLocal, linkDest))
         os.system('cp -ar "%s" "%s"' % (linkLocal, linkDest))
 
         fp = os.popen('find "%s" -type l -lname "[^/].*" -print0' % linkLocal)
@@ -623,10 +645,10 @@ elif mode == 'initialize_shared_storage':
         fp.close()
 
     if relative_symlinks:
-        print (
+        print(
             '\nWARNING: The following copied files contain relative '
             'symlinks:\n')
         for symlink in relative_symlinks:
-            print '   %s -> %s' % (symlink, os.readlink(symlink))
+            print('   %s -> %s' % (symlink, os.readlink(symlink)))
 
     sys.exit(lsb.exitRC.OK)

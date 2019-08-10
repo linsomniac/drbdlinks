@@ -1,5 +1,5 @@
 %define name    drbdlinks
-%define version 1.27
+%define version 1.29
 %define release 1
 %define prefix  %{_prefix}
 

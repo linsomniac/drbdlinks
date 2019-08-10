@@ -1,4 +1,12 @@
 ================================
+Version 1.29 -- Xxx Xxx XX, 20XX
+
+Added Python 3 support.
+      Patch by Robert Scheck
+Detect whether "ls" supports "--scontext" to show SELinux context.
+      Patch by Robert Scheck
+
+================================
 Version 1.28 -- Thu Oct 26, 2017
 
 Added documentation for OCF resource.
