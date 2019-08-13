@@ -156,7 +156,7 @@ def loadConfigFile(configFile):
             #  detect what ls(1) supports to show SELinux context
             try:
                 subprocess.check_output(
-                    ['ls', '--scontext'], stderr=subprocess.STDOUT)
+                    ['ls', '--scontext', __file__], stderr=subprocess.STDOUT)
                 self.showContextCommand = 'ls -d --scontext "%s"'
             except subprocess.CalledProcessError:
                 self.showContextCommand = 'ls -d -Z -1 "%s"'
