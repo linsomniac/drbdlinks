@@ -2,6 +2,7 @@ DRBDLINKS=python ../drbdlinks
 
 test:
 	$(DRBDLINKS) meta-data | grep -iq '<shortdesc lang="en">Configuration Filename</shortdesc>'
+	rm -rf shared
 	mkdir shared
 	echo 'Shared file' >shared/testlink
 	echo 'Local file' >testlink

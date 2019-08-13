@@ -6,17 +6,18 @@
 #  Copyright (c) 2004-2013, tummy.com, ltd.  All Rights Reserved
 #  drbdlinks is under the following license: GPLv2
 
-configFile = '/etc/drbdlinks.conf'
-configDir = '/etc/drbdlinks.d/*.conf'
-cleanConfigsDirectory = '/var/lib/drbdlinks/configs-to-clean'
-
 import os
-import string
 import sys
 import stat
 import syslog
 import shutil
 import glob
+import subprocess
+
+configFile = '/etc/drbdlinks.conf'
+configDir = '/etc/drbdlinks.d/*.conf'
+cleanConfigsDirectory = '/var/lib/drbdlinks/configs-to-clean'
+
 
 syslog.openlog('drbdlinks', syslog.LOG_PID)
 
@@ -32,11 +33,6 @@ except NameError:
     def execfile(filepath, globals=None, locals=None):
         with open(filepath, 'rb') as file:
             exec(compile(file.read(), filepath, 'exec'), globals, locals)
-
-try:
-    xrange
-except NameError:
-    xrange = range
 
 
 class lsb:
@@ -142,7 +138,6 @@ def loadConfigFile(configFile):
             self.restartSyslog = 0
             self.restartCron = 0
             self.makeMountpointShared = 0
-            self.showContextCommand = None
 
             #  Locate where the selinuxenabled binary is
             for path in (
@@ -159,13 +154,12 @@ def loadConfigFile(configFile):
                     self.useSELinux = 1
 
             #  detect what ls(1) supports to show SELinux context
-            fp = os.popen('ls --scontext "%s" 2>&1' % __file__, 'r')
-            fp.readline()
-            ret = fp.close()
-            if ret is not None and (ret >> 8) > 0:
-                self.showContextCommand = 'ls -d -Z -1 "%s"'
-            else:
+            try:
+                subprocess.check_output(
+                    ['ls', '--scontext'], stderr=subprocess.STDOUT)
                 self.showContextCommand = 'ls -d --scontext "%s"'
+            except subprocess.CalledProcessError:
+                self.showContextCommand = 'ls -d -Z -1 "%s"'
 
         def cmd_cleanthisconfig(self, enabled=1):
             self.cleanthisconfig = enabled
@@ -223,21 +217,21 @@ def loadConfigFile(configFile):
 
     #  process the data we got
     if config.mountpoint:
-        config.mountpoint = str.rstrip(config.mountpoint, '/')
-    for i in xrange(len(config.linkList)):
+        config.mountpoint = config.mountpoint.rstrip('/')
+    for i in range(len(config.linkList)):
         oldList = config.linkList[i]
         if oldList[1]:
-            arg2 = str.rstrip(oldList[1], '/')
+            arg2 = oldList[1].rstrip('/')
         else:
             if not config.mountpoint:
                 log(
                     'ERROR: Used link() when no mountpoint() was set '
                     'in the config file.\n')
                 sys.exit(3)
-            arg2 = str.lstrip(oldList[0], '/')
+            arg2 = oldList[0].lstrip('/')
             arg2 = os.path.join(config.mountpoint, arg2).rstrip('/')
         config.linkList[i] = (
-            [str.rstrip(oldList[0], '/'), arg2] + list(oldList[2:]))
+            [oldList[0].rstrip('/'), arg2] + list(oldList[2:]))
 
     #  return the data  {{{2
     return(config)
@@ -479,8 +473,8 @@ if mode == 'start':
             line = fp.readline()
             fp.close()
             if line:
-                line = str.split(line, ' ')[0]
-                seInfo = str.split(line, ':')
+                line = line.split(' ')[0]
+                seInfo = line.split(':')
                 seUser, seRole, seType = seInfo[:3]
                 if len(seInfo) >= 4:
                     seRange = seInfo[3]
@@ -540,7 +534,7 @@ elif mode == 'stop':
                 os.system('umount "%s"' % linkLocal)
                 try:
                     os.remove(linkLocal)
-                except:
+                except Exception:
                     pass
                 if os.path.exists(linkLocal):
                     os.rmdir(linkLocal)
@@ -612,7 +606,7 @@ elif mode == 'initialize_shared_storage':
         (src, dest) where the `src` is the corresponding source directory to
         the `dest`.
         '''
-        l = []
+        retval = []
         destdirname = os.path.dirname(dest)
         srcdirname = os.path.dirname(src)
         while srcdirname and srcdirname != '/':
@@ -620,10 +614,10 @@ elif mode == 'initialize_shared_storage':
                 break
             if os.path.basename(destdirname) != os.path.basename(srcdirname):
                 break
-            l.append((srcdirname, destdirname))
+            retval.append((srcdirname, destdirname))
             srcdirname = os.path.dirname(srcdirname)
             destdirname = os.path.dirname(destdirname)
-        return l[::-1]
+        return retval[::-1]
 
     relative_symlinks = []
     for linkLocal, linkDest, useBindMount in config.linkList:
