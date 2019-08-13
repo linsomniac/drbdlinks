@@ -108,12 +108,12 @@ def restartCron(config):
 
 #######################
 def testConfig(config):
-    allUp = 1
+    allUp = True
     for linkLocal, linkDest, useBindLink in config.linkList:
         suffixName = linkLocal + options.suffix
-        #  check to see if the link is in place  {{{3
+        #  check to see if the link is in place
         if not os.path.exists(suffixName):
-            allUp = 0
+            allUp = False
             if options.verbose >= 1:
                 print(
                     'testConfig: Original file not present: "%s"' % suffixName)
@@ -233,7 +233,7 @@ def loadConfigFile(configFile):
         config.linkList[i] = (
             [oldList[0].rstrip('/'), arg2] + list(oldList[2:]))
 
-    #  return the data  {{{2
+    #  return the data
     return(config)
 
 
@@ -299,11 +299,11 @@ file-system to make room for the symlink.  By default this is ".drbdlinks".
     sys.exit(lsb.exitRC.OK)
 
 
-#  meta-data may happen when configuration is not present.  {{{1
+#  meta-data may happen when configuration is not present.
 if 'meta-data' in sys.argv:
     print_metadata()
 
-#  parse arguments  {{{1
+#  parse arguments
 parser = optparse.OptionParser()
 parser.add_option(
     '-c', '--config-file', dest='configFile', type='string',
@@ -337,7 +337,7 @@ if OCFenabled:
         pass
 configFile = options.configFile
 
-#  figure out what the mode to run in  {{{1
+#  figure out what the mode to run in
 if len(args) == 1 or (OCFenabled and len(args) > 0):
     #  NOTE: OCF specifies that additional arguments beyond the first should
     #  be ignored.
@@ -356,7 +356,7 @@ else:
 if options.verbose >= 2:
     print('Initial mode: "%s"' % mode)
 
-#  load config file  {{{1
+#  load config file
 try:
     config = loadConfigFile(configFile)
 except IOError as e:
@@ -370,7 +370,7 @@ except IOError as e:
             else:
                 sys.exit(lsb.exitRC.NOTRUNNING)
         print('ERROR: Unable to open config file "%s":' % configFile)
-        print('  ', str(e))
+        print('  %s' % e)
         syslog.syslog('Invalid config file "%s"' % configFile)
         sys.exit(lsb.statusRC.UNKNOWN)
     raise
@@ -393,13 +393,13 @@ if not os.path.exists(config.mountpoint):
         syslog.syslog('Mount point does not exist')
     sys.exit(lsb.statusRC.UNKNOWN)
 
-#  startup log message  {{{1
+#  startup log message
 if config.debug:
     syslog.syslog(
         'drbdlinks starting: args: "%s", configfile: "%s"'
         % (repr(sys.argv), configFile))
 
-#  if mode is auto, figure out what mode to use  {{{1
+#  if mode is auto, figure out what mode to use
 if mode == 'auto':
     if (os.stat(config.mountpoint).st_dev !=
             os.stat(os.path.join(config.mountpoint, '..')).st_dev):
@@ -411,13 +411,13 @@ if mode == 'auto':
 if options.verbose >= 1:
     print('Mode: "%s"' % mode)
 
-# just display the list of links  {{{1
+# just display the list of links
 if mode == 'list':
     for linkLocal, linkDest, useBindMount in config.linkList:
         print('%s %s %s' % (linkLocal, linkDest, useBindMount))
     sys.exit(0)
 
-#  set up links  {{{1
+#  set up links
 anyLinksChanged = 0
 if mode == 'start':
     errorCount = 0
@@ -429,14 +429,14 @@ if mode == 'start':
     #  loop over links
     for linkLocal, linkDest, useBindMount in config.linkList:
         suffixName = linkLocal + options.suffix
-        #  check to see if the link is in place  {{{3
+        #  check to see if the link is in place
         if os.path.exists(suffixName):
             if options.verbose >= 1:
                 print(
                     'Skipping, appears to already be linked: "%s"' % linkLocal)
             continue
 
-        #  make the link  {{{3
+        #  make the link
         try:
             if options.verbose >= 2:
                 print('Renaming "%s" to "%s"' % (linkLocal, suffixName))
@@ -511,12 +511,12 @@ if mode == 'start':
         syslog.syslog('Exiting with no errors')
     sys.exit(lsb.exitRC.OK)
 
-#  remove links  {{{1
+#  remove links
 elif mode == 'stop':
     errorCount = 0
     for linkLocal, linkDest, useBindMount in config.linkList:
         suffixName = linkLocal + options.suffix
-        #  check to see if the link is in place  {{{3
+        #  check to see if the link is in place
         if not os.path.exists(suffixName):
             if options.verbose >= 1:
                 print(
@@ -524,7 +524,7 @@ elif mode == 'stop':
                     % linkLocal)
             continue
 
-        #  break the link  {{{3
+        #  break the link
         try:
             if options.verbose >= 2:
                 print('Removing "%s"' % (linkLocal,))
@@ -566,7 +566,7 @@ elif mode == 'stop':
         syslog.syslog('Exiting with no errors')
     sys.exit(lsb.exitRC.OK)
 
-#  monitor mode  {{{1
+#  monitor mode
 elif mode == 'monitor':
     if testConfig(config):
         if config.debug:
@@ -577,7 +577,7 @@ elif mode == 'monitor':
         syslog.syslog('Monitor mode returning notrunning')
     sys.exit(lsb.exitRC.NOTRUNNING)
 
-#  status mode  {{{1
+#  status mode
 elif mode == 'status':
     if testConfig(config):
         print("info: DRBD Links OK (present)")
@@ -590,7 +590,7 @@ elif mode == 'status':
         syslog.syslog('Status mode returning stopped')
     sys.exit(lsb.statusRC.STOPPED)
 
-#  check mode  {{{1
+#  check mode
 elif mode == 'checklinks':
     for linkLocal, linkDest, useBindMount in config.linkList:
         if not os.path.exists(linkDest):
@@ -598,7 +598,7 @@ elif mode == 'checklinks':
     sys.exit(lsb.exitRC.OK)
 
 
-#  initialize_shared_storage mode  {{{1
+#  initialize_shared_storage mode
 elif mode == 'initialize_shared_storage':
     def dirs_to_make(src, dest):
         '''Return a list of paths, from top to bottom, that need to be created
