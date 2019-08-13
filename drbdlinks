@@ -28,6 +28,11 @@ except ImportError:
     optparse = optik
 
 try:
+    from subprocess import DEVNULL
+except ImportError:
+    DEVNULL = open(os.devnull, 'wb')
+
+try:
     execfile
 except NameError:
     def execfile(filepath, globals=None, locals=None):
@@ -155,8 +160,9 @@ def loadConfigFile(configFile):
 
             #  detect what ls(1) supports to show SELinux context
             try:
-                subprocess.check_output(
-                    ['ls', '--scontext', __file__], stderr=subprocess.STDOUT)
+                subprocess.check_call(
+                    ['ls', '--scontext', __file__],
+                    stdout=DEVNULL, stderr=DEVNULL)
                 self.showContextCommand = 'ls -d --scontext "%s"'
             except subprocess.CalledProcessError:
                 self.showContextCommand = 'ls -d -Z -1 "%s"'
@@ -594,7 +600,7 @@ elif mode == 'status':
 elif mode == 'checklinks':
     for linkLocal, linkDest, useBindMount in config.linkList:
         if not os.path.exists(linkDest):
-            print('Does not exist:', linkDest)
+            print('Does not exist: %s' % linkDest)
     sys.exit(lsb.exitRC.OK)
 
 
